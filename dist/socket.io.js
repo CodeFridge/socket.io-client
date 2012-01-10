@@ -102,7 +102,6 @@
   };
 
 })('object' === typeof module ? module.exports : (this.io = {}), this);
-
 /**
  * socket.io
  * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
@@ -210,7 +209,7 @@
     for (; i < l; ++i) {
       kv = params[i].split('=');
       if (kv[0]) {
-        query[kv[0]] = decodeURIComponent(kv[1]);
+        query[kv[0]] = kv[1];
       }
     }
 
@@ -1259,6 +1258,22 @@
   io.util.mixin(Transport, io.EventEmitter);
 
   /**
+   * Returns the appropriate host for the URI generation for the given transport.
+   *
+   * @api private
+   */
+  Transport.prototype.host = function () {
+    var options = this.socket.options;
+
+    if (options["transport hosts"] && options["transport hosts"][this.name]) {
+      return options["transport hosts"][this.name];
+    }
+
+    return options.host;
+  };
+
+
+  /**
    * Handles the response from the server. When a new response is received
    * it will automatically update the timeout, decode the message and
    * forwards the response to the onMessage function for further processing.
@@ -1273,7 +1288,7 @@
     // If the connection in currently open (or in a reopening state) reset the close 
     // timeout since we have just received data. This check is necessary so
     // that we don't reset the timeout on an explicitly disconnected connection.
-    if (this.connected || this.connecting || this.reconnecting) {
+    if (this.socket.connected || this.socket.connecting || this.socket.reconnecting) {
       this.setCloseTimeout();
     }
 
@@ -1445,7 +1460,7 @@
     var options = this.socket.options;
 
     return this.scheme() + '://'
-      + options.host + ':' + options.port + '/'
+      + this.host() + ':' + options.port + '/'
       + options.resource + '/' + io.protocol
       + '/' + this.name + '/' + this.sessid;
   };
@@ -1465,7 +1480,6 @@
     'undefined' != typeof io ? io : module.exports
   , 'undefined' != typeof io ? io : module.parent.exports
 );
-
 /**
  * socket.io
  * Copyright(c) 2011 LearnBoost <dev@learnboost.com>
@@ -1504,6 +1518,7 @@
       , 'sync disconnect on unload': true
       , 'auto connect': true
       , 'flash policy port': 10843
+      , 'transport hosts' : {}
     };
 
     io.util.merge(this.options, options);
@@ -1616,6 +1631,7 @@
       var xhr = io.util.request();
 
       xhr.open('GET', url, true);
+      xhr.withCredentials = true;
       xhr.onreadystatechange = function () {
         if (xhr.readyState == 4) {
           xhr.onreadystatechange = empty;
@@ -1869,7 +1885,7 @@
 
   Socket.prototype.onError = function (err) {
     if (err && err.advice) {
-      if (err.advice === 'reconnect' && this.connected) {
+      if (this.options.reconnect && err.advice === 'reconnect' && this.connected) {
         this.disconnect();
         this.reconnect();
       }
@@ -1927,6 +1943,8 @@
         }
         self.publish('reconnect', self.transport.name, self.reconnectionAttempts);
       }
+
+      clearTimeout(self.reconnectionTimer);
 
       self.removeListener('connect_failed', maybeReconnect);
       self.removeListener('connect', maybeReconnect);
@@ -2517,7 +2535,7 @@
         , port = options['flash policy port']
         , path = [
               'http' + (options.secure ? 's' : '') + ':/'
-            , options.host + ':' + options.port
+            , this.host() + ':' + options.port
             , options.resource
             , 'static/flashsocket'
             , 'WebSocketMain' + (socket.isXDomain() ? 'Insecure' : '') + '.swf'
@@ -3142,7 +3160,10 @@ var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="Sho
 
   XHR.check = function (socket, xdomain) {
     try {
-      if (io.util.request(xdomain)) {
+      var request = io.util.request(xdomain);
+      var socket_protocol = socket.options.secure ? 'https' : http;
+      var global_protocol = global.location.protocol.split(':')[0];
+      if (request && !(global.XDomainRequest && request instanceof XDomainRequest && socket_protocol != global_protocol)  ) {
         return true;
       }
     } catch(e) {}
@@ -3428,14 +3449,20 @@ var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="Sho
 
     function onload () {
       this.onload = empty;
+      this.onerror = empty;
       self.onData(this.responseText);
       self.get();
+    };
+
+    function onerror () {
+      self.onClose();
     };
 
     this.xhr = this.request();
 
     if (global.XDomainRequest && this.xhr instanceof XDomainRequest) {
-      this.xhr.onload = this.xhr.onerror = onload;
+      this.xhr.onload = onload;
+      this.xhr.onerror = onerror;
     } else {
       this.xhr.onreadystatechange = stateChange;
     }
@@ -3453,7 +3480,7 @@ var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="Sho
     io.Transport.XHR.prototype.onClose.call(this);
 
     if (this.xhr) {
-      this.xhr.onreadystatechange = this.xhr.onload = empty;
+      this.xhr.onreadystatechange = this.xhr.onload = this.xhr.onerror = empty;
       try {
         this.xhr.abort();
       } catch(e){}
