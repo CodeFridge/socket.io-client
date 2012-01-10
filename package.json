@@ -27,8 +27,8 @@
       , "express": "2.3.11"
       , "jade": "0.12.1"
       , "stylus": "0.13.3"
-      , "socket.io": "0.8.7"
-      , "socket.io-client": "0.8.7"
+      , "socket.io": "https://github.com/Orchestra/socket.io/tarball/nohandshake"
+      , "socket.io-client": "https://github.com/Orchestra/socket.io-client/tarball/nohandshake"
     }
   , "engines": { "node": ">= 0.4.0" }
 }
