@@ -3161,7 +3161,9 @@ var swfobject=function(){var D="undefined",r="object",S="Shockwave Flash",W="Sho
   XHR.check = function (socket, xdomain) {
     try {
       var request = io.util.request(xdomain);
-      var socket_protocol = socket.options.secure ? 'https' : http;
+      if (socket != null){
+        var socket_protocol = socket.options && socket.options.secure ? 'https' : http;
+      }
       var global_protocol = global.location.protocol.split(':')[0];
       if (request && !(global.XDomainRequest && request instanceof XDomainRequest && socket_protocol != global_protocol)  ) {
         return true;
