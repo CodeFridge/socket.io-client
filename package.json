@@ -15,7 +15,7 @@
     ]
   , "repository": {
         "type": "git"
-      , "url": "https://github.com/Orchestra/socket.io-client.git"
+      , "url": "https://github.com/CodeFridge/socket.io-client.git"
     }
   , "dependencies": {
         "uglify-js": "1.0.6"
@@ -27,8 +27,8 @@
       , "express": "2.3.11"
       , "jade": "0.12.1"
       , "stylus": "0.13.3"
-      , "socket.io": "https://github.com/Orchestra/socket.io/tarball/nohandshake"
-      , "socket.io-client": "https://github.com/Orchestra/socket.io-client/tarball/nohandshake"
+      , "socket.io": "https://github.com/CodeFridge/socket.io/tarball/nohandshake"
+      , "socket.io-client": "https://github.com/CodeFridge/socket.io-client/tarball/nohandshake"
     }
   , "engines": { "node": ">= 0.4.0" }
 }
